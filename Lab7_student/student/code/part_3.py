@@ -24,11 +24,8 @@ class Embedding(nn.Module):
         super().__init__()
         self.weight = nn.Parameter(torch.randn(num_embeddings, embedding_dim))
 
-    def forward(self, idx: torch.Tensor) -> torch.Tensor:
-        output = []
-        for i in idx:
-            output.append(self.weight[i])
-        return torch.stack(output)
+    def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
+        return self.weight[token_ids]
 
 
 
@@ -75,6 +72,7 @@ class VerySimpleLanguageModel(nn.Module):
         2. self.blocks, then self.final_head -> logits (batch, seq, vocab_size).
         3. If targets: flatten logits/targets and cross_entropy.
         """
+
         tok_emb = self.token_embedding_table(token_ids)
         pos_idx = torch.arange(seq_len, device=token_ids.device)
         pos_emb = self.position_embedding_table(pos_idx)
@@ -82,6 +80,7 @@ class VerySimpleLanguageModel(nn.Module):
         x = self.blocks(x)
         logits: torch.Tensor = self.final_head(x)
         loss: Optional[torch.Tensor] = None
+
         if targets is not None:
             vocab_size: int = logits.shape[2]
             logits = logits.view(batch_size * seq_len, vocab_size)
