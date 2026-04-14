@@ -18,32 +18,37 @@ from part_2 import bpe_tokenizer
 class Embedding(nn.Module):
     """
     Learnable embedding from scratch: one vector per index, same interface as nn.Embedding.
-
-    TODO: Implement Embedding. In __init__, store a learnable parameter of shape (num_embeddings, embedding_dim).
     In forward(idx), return the embedding vectors for the given indices (index into the parameter).
     """
-
     def __init__(self, num_embeddings: int, embedding_dim: int) -> None:
         super().__init__()
-        raise NotImplementedError("TODO: Implement Embedding __init__ (create self.weight parameter).")
+        self.weight = nn.Parameter(torch.randn(num_embeddings, embedding_dim))
 
     def forward(self, idx: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("TODO: Implement Embedding forward (return self.weight[idx]).")
+        output = []
+        for i in idx:
+            output.append(self.weight[i])
+        return torch.stack(output)
+
 
 
 class SinusoidalPositionalEmbedding(nn.Module):
     """
     Fixed sinusoidal positional embeddings (Attention is All You Need): PE(pos,2i)=sin(pos/10000^(2i/d)), PE(pos,2i+1)=cos(...). No learnable parameters.
-
-    TODO: Implement in __init__: build a (block_size, n_embd) table with sin on even dims and cos on odd dims; register as buffer. In forward(pos_idx), return the table indexed by pos_idx.
     """
 
     def __init__(self, block_size: int, n_embd: int) -> None:
         super().__init__()
-        raise NotImplementedError("TODO: Implement SinusoidalPositionalEmbedding __init__ (compute pe, register_buffer).")
+        pe = torch.zeros(block_size, n_embd)
+        position = torch.arange(0, block_size, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, n_embd, 2).float() * (-math.log(10000.0) / n_embd))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
 
     def forward(self, pos_idx: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("TODO: Implement SinusoidalPositionalEmbedding forward (return self.pe[pos_idx]).")
+        return self.pe[pos_idx]
 
 
 class VerySimpleLanguageModel(nn.Module):
@@ -66,13 +71,16 @@ class VerySimpleLanguageModel(nn.Module):
         seq_len: int
         batch_size, seq_len = token_ids.shape
         """
-        TODO: Full forward (blocks/head are mocked in gpt_mock; focus on embeddings).
         1. Token embeddings + positional embeddings for positions 0..seq_len-1, sum.
         2. self.blocks, then self.final_head -> logits (batch, seq, vocab_size).
         3. If targets: flatten logits/targets and cross_entropy.
         """
-        raise NotImplementedError("TODO: Implement VerySimpleLanguageModel forward.")
-        logits: torch.Tensor = None
+        tok_emb = self.token_embedding_table(token_ids)
+        pos_idx = torch.arange(seq_len, device=token_ids.device)
+        pos_emb = self.position_embedding_table(pos_idx)
+        x = tok_emb + pos_emb
+        x = self.blocks(x)
+        logits: torch.Tensor = self.final_head(x)
         loss: Optional[torch.Tensor] = None
         if targets is not None:
             vocab_size: int = logits.shape[2]
@@ -120,7 +128,10 @@ def part3():
         ("bpe", lambda: bpe_tokenizer(text, num_merges=50)),
     ]:
         print(f"--- {name} tokenizer ---")
-        encode, decode, vocab, _ = get_tokenizer()
+        if name=="bpe":
+            encode, decode, vocab, _ = get_tokenizer()
+        else:
+            encode, decode, vocab = get_tokenizer()
         vocab_size = len(vocab)
         data = torch.tensor(encode(text), dtype=torch.long)
         train_loader = create_lm_train_loader(data, block_size, batch_size, shuffle=True)
