@@ -14,12 +14,14 @@ def char_tokenizer(
     """
     Character-level tokenizer: each character is one token. Returns (encode, decode, vocabulary).
     
-    TODO: Implement character-level tokenizer.
     """
-    raise NotImplementedError("TODO: Implement the character-level tokenizer.")
+    vocab = sorted(list(set(text)))
+    stoi: Dict[str, int] = {token: i for i, token in enumerate(vocab)}
+    itos: Dict[int, str] = {i: token for i, token in enumerate(vocab)}
 
-    encode: Callable[[str], List[int]]
-    decode: Callable[[List[int]], str]
+    encode = lambda s: [stoi[c] for c in s]
+    decode = lambda ids: "".join([itos[i] for i in ids])
+
     return encode, decode, vocab
 
 
@@ -29,13 +31,31 @@ def word_tokenizer(
     """
     Word-level tokenizer: splits on words and punctuation (regex \\w+ and non-word chars).
     Returns (encode, decode, vocabulary).
-        
-    TODO: Implement character-level tokenizer.
     """
-    raise NotImplementedError("TODO: Implement the word-level tokenizer.")
-    encode: Callable[[str], List[int]]
-    decode: Callable[[List[int]], str]
+    WORDP = r"(\w+|^\w)"
+    tokens = list(
+        re.findall(WORDP, text)
+    )
+    vocab = sorted(set(tokens))
+
+    stoi: Dict[str, int] = {token: i for i, token in enumerate(vocab)}
+    itos: Dict[int, str] = {i: token for i, token in enumerate(vocab)}
+
+    encode = lambda s: [stoi[w] for w in re.findall(WORDP, s)]
+    decode = lambda ids: "".join([itos[i] for i in ids])
+
     return encode, decode, vocab
+
+
+def create_lm_train_loader(
+        data: torch.Tensor,
+        block_size: int,
+        batch_size: int,
+        shuffle: bool = True,
+) -> DataLoader:
+    train_ds = TokenWindowDataset(data, block_size)
+    return DataLoader(train_ds, batch_size=batch_size, shuffle=shuffle, num_workers=0)
+
 
 
 class TokenWindowDataset(Dataset):
