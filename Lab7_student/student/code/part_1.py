@@ -32,7 +32,7 @@ def word_tokenizer(
     Word-level tokenizer: splits on words and punctuation (regex \\w+ and non-word chars).
     Returns (encode, decode, vocabulary).
     """
-    WORDP = r"(\w+|^\w)"
+    WORDP = r"(\w+|\W+)"
     tokens = list(
         re.findall(WORDP, text)
     )
