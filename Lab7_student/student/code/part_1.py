@@ -70,11 +70,11 @@ class TokenWindowDataset(Dataset):
 
     def __getitem__(self, i: int):
         """
-        TODO: Get the input x and target y for the i-th window.
         x is the current window of length block_size.
         y is the next window of length block_size + 1.
         """
-        raise NotImplementedError("TODO: Implement the __getitem__ method.")
+        x = self.data[i : i + self.block_size]
+        y = self.data[i + 1 : i + self.block_size + 1]
         return x, y
 
 
