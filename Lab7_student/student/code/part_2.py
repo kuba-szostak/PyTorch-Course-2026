@@ -81,7 +81,7 @@ def bpe_tokenizer(
         return "".join(tokens)
 
 
-    return encode, decode, vocab
+    return encode, decode, vocab, merges
 
 def verify_part2() -> None:
     """Check BPE round-trip, vocab range, and merge list structure."""
