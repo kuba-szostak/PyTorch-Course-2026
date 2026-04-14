@@ -57,18 +57,29 @@ def bpe_tokenizer(
 
     def encode(s: str) -> List[int]:
         """
-        TODO:
         1. Split s into chars (list).
         2. Apply merges in order (same rule as training loop).
         3. Map each token string to id via stoi.
         """
-        raise NotImplementedError("TODO: Implement encode.")
+        tokens = list(s)
+        for pair, merged_token in merges:
+            new_tokens = []
+            i = 0
+            while i < len(tokens):
+                if i < len(tokens) - 1 and (tokens[i], tokens[i + 1]) == pair:
+                    new_tokens.append(merged_token)
+                    i += 2
+                else:
+                    new_tokens.append(tokens[i])
+                    i += 1
+            tokens = new_tokens
+        return [stoi[token] for token in tokens]
+
 
     def decode(ids: List[int]) -> str:
-        """
-        TODO: Decode a list of token ids back to a string.
-        """
-        raise NotImplementedError("TODO: Implement decode.")
+        tokens = [itos[i] for i in ids]
+        return "".join(tokens)
+
 
     return encode, decode, vocab
 
