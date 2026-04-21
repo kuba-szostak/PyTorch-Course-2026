@@ -42,16 +42,28 @@ class GPTLanguageModel(nn.Module):
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size)
 
     def forward(self, idx):
-        """
-        TODO: Implement the forward pass: embed tokens and positions (add them), blocks, ln_f, lm_head.
-        """
-        raise NotImplementedError("TODO: Implement the forward pass of the GPTLanguageModel module.")
+        
+        
 
     def generate(self, idx, max_new_tokens):
         """
-        TODO: Implement generate: loop max_new_tokens times; each step: last block_size tokens → forward → last logits → softmax → sample → append to idx; return idx.
+        Generate new tokens autoregressively: loop max_new_tokens times; each step: last block_size tokens → forward → last logits → softmax → sample → append to idx; return idx.
+        idx: (B, T) initial token indices.
+        Returns: (B, T + max_new_tokens) token indices.
         """
-        raise NotImplementedError("TODO: Implement the generate method of the GPTLanguageModel module.")
+        for _ in range(max_new_tokens):
+            # Crop idx to the last block_size tokens
+            idx_cond = idx[:, -self.config.block_size:]
+            # Get predictions
+            logits = self(idx_cond)  # (B, T, vocab_size)
+            # Focus only on the last time step
+            logits = logits[:, -1, :]  # (B, vocab_size)
+            # Apply softmax to get probabilities
+            probs = F.softmax(logits, dim=-1)  # (B, vocab_size)
+            # Sample from the distribution
+            idx_next = torch.multinomial(probs, num_samples=1)  # (B, 1)
+            # Append sampled index to the running sequence
+            idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
         return idx
 
     def count_parameters(self):

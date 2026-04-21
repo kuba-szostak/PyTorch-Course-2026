@@ -18,36 +18,49 @@ class FeedForward(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        """
-        TODO: Implement the FeedForward module with two linear layers, ReLU and dropout.
-        Order: Linear(n_embd, 4*n_embd) → ReLU → Linear(4*n_embd, n_embd) → Dropout.
-        """
-        raise NotImplementedError("TODO: Implement the FeedForward module.")
-
+        self.net = nn.Sequential(
+            nn.Linear(config.n_embd, 4 * config.n_embd),
+            nn.ReLU(),
+            nn.Linear(4 * config.n_embd, config.n_embd),
+            nn.Dropout(config.dropout),
+        )
 
     def forward(self, x):
-        """
-        TODO: Implement the forward pass: pass x through the network and return the result.
-        """
-        raise NotImplementedError("TODO: Implement the forward pass of the FeedForward module.")
-
+        return self.net(x)
 
 class AttentionHead(nn.Module):
     """Single self-attention head: Q, K, V linear projections; causal mask; softmax; output = attention @ V."""
 
     def __init__(self, config, head_size):
         super().__init__()
-        """
-        TODO: Implement the AttentionHead module: key, query, value (nn.Linear to head_size);
-        register_buffer('tril', torch.tril(...)) for causal mask; dropout.
-        """
-        raise NotImplementedError("TODO: Implement the AttentionHead module.")
+        self.key = nn.Linear(config.n_embd, head_size, bias=False)
+        self.query = nn.Linear(config.n_embd, head_size, bias=False)
+        self.value = nn.Linear(config.n_embd, head_size, bias=False)
+        self.register_buffer('tril', torch.tril(torch.ones(config.block_size, config.block_size)))
+        self.dropout = nn.Dropout(config.dropout)
+        self.head_size = head_size
 
     def forward(self, x):
-        """
-        TODO: Implement the forward pass: Q,K,V from x; wei = scaled Q@K^T; mask; softmax; dropout; out = wei @ V.
-        """
-        raise NotImplementedError("TODO: Implement the forward pass of the AttentionHead module.")
+        B, T, C = x.shape
+        k = self.key(x)  # (B, T, head_size)
+        q = self.query(x)  # (B, T, head_size)
+        v = self.value(x)  # (B, T, head_size)
+
+        # Compute attention scores with scaling
+        wei = q @ k.transpose(-2, -1) * (self.head_size ** -0.5)  # (B, T, T)
+
+        # Apply causal mask
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
+
+        # Apply softmax
+        wei = F.softmax(wei, dim=-1)
+
+        # Apply dropout
+        wei = self.dropout(wei)
+
+        # Weighted aggregation of values
+        out = wei @ v  # (B, T, head_size)
+        return out
 
 
 # ------ Tests ------
