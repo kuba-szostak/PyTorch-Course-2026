@@ -10,19 +10,17 @@ from part_1 import FeedForward, AttentionHead, _test_config
 
 class MultiHeadAttention(nn.Module):
     """Multiple AttentionHead modules in parallel; concat outputs then project back to n_embd."""
-
     def __init__(self, config, num_heads, head_size):
         super().__init__()
-        """
-        TODO: Implement MultiHeadAttention: ModuleList of AttentionHead(config, head_size); Linear(head_size*num_heads, n_embd); dropout.
-        """
-        raise NotImplementedError("TODO: Implement the MultiHeadAttention module.")
+        self.heads = nn.ModuleList([AttentionHead(config, head_size) for _ in range(num_heads)])
+        self.proj = nn.Linear(head_size * num_heads, config.n_embd)
+        self.dropout = nn.Dropout(config.dropout)
+        
 
     def forward(self, x):
-        """
-        TODO: Implement the forward pass: run each head on x, concat on dim=-1, then project and dropout.
-        """
-        raise NotImplementedError("TODO: Implement the forward pass of the MultiHeadAttention module.")
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        out = self.dropout(self.proj(out))
+        return out
 
 
 class Block(nn.Module):
@@ -30,16 +28,15 @@ class Block(nn.Module):
 
     def __init__(self, config):
         super().__init__()
-        """
-        TODO: Implement the Block: two LayerNorms, one MultiHeadAttention, one FeedForward; head_size = n_embd // n_head.
-        """
-        raise NotImplementedError("TODO: Implement the Block module.")
+        head_size = config.n_embd // config.n_head
+        self.ln1 = nn.LayerNorm(config.n_embd)
+        self.sa = MultiHeadAttention(config, config.n_head, head_size)
+        self.ln2 = nn.LayerNorm(config.n_embd)
+        self.ffwd = FeedForward(config)
 
     def forward(self, x):
-        """
-        TODO: Implement the forward pass: x = x + sa(ln1(x)); x = x + ffwd(ln2(x)); return x. (Pre-norm.)
-        """
-        raise NotImplementedError("TODO: Implement the forward pass of the Block module.")
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
         return x
 
 

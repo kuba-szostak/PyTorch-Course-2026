@@ -42,8 +42,20 @@ class GPTLanguageModel(nn.Module):
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size)
 
     def forward(self, idx):
-        
-        
+        """
+        Forward pass: token + position embeddings → blocks → ln_f → lm_head → logits.
+        idx: (B, T) token indices.
+        Returns: logits (B, T, vocab_size).
+        """
+        B, T = idx.shape
+        pos = torch.arange(0, T, dtype=torch.long, device=idx.device)  # (T,)
+        tok_emb = self.token_embedding_table(idx)  # (B, T, n_embd)
+        pos_emb = self.position_embedding_table(pos)  # (T, n_embd)
+        x = tok_emb + pos_emb  # (B, T, n_embd)
+        x = self.blocks(x)  # (B, T, n_embd)
+        x = self.ln_f(x)  # (B, T, n_embd)
+        logits = self.lm_head(x)  # (B, T, vocab_size)
+        return logits
 
     def generate(self, idx, max_new_tokens):
         """
